@@ -1,7 +1,7 @@
-use chess::{Piece, PieceColor, PieceKind};
+use chessman::{Piece, PieceColor, PieceKind};
 
 fn main() {
-    println!("Chess!");
+    println!("Chessman!");
     println!(
         "White King in FEN: {}",
         Piece::new(PieceColor::White, PieceKind::King).to_fen()
