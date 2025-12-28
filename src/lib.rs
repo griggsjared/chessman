@@ -83,6 +83,14 @@ impl Piece {
             (PieceColor::Black, PieceKind::Pawn) => 'p',
         }
     }
+
+    pub fn color(&self) -> PieceColor {
+        self.color
+    }
+
+    pub fn kind(&self) -> PieceKind {
+        self.kind
+    }
 }
 
 /// Struct representing a square and its position on the chessboard
@@ -193,6 +201,13 @@ mod tests {
             let reconstructed_piece = Piece::from_fen(fen_char).unwrap();
             assert_eq!(p, reconstructed_piece);
         }
+    }
+
+    #[test]
+    fn test_piece_color_and_kind() {
+        let piece = Piece::new(PieceColor::White, PieceKind::Queen);
+        assert_eq!(piece.color(), PieceColor::White);
+        assert_eq!(piece.kind(), PieceKind::Queen);
     }
 
     #[test]
