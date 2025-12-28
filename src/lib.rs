@@ -8,7 +8,7 @@ pub enum PieceColor {
 }
 
 impl PieceColor {
-    pub fn opposite(&self) -> PieceColor {
+    pub fn opposite(self) -> Self {
         match self {
             PieceColor::White => PieceColor::Black,
             PieceColor::Black => PieceColor::White,
