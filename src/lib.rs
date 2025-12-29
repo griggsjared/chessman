@@ -117,6 +117,11 @@ impl Square {
     pub fn rank(self) -> u8 {
         self.0 / 8
     }
+
+    /// Returns the index (0-63) of the square
+    pub fn index(self) -> usize {
+        self.0 as usize
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -229,6 +234,12 @@ mod tests {
         let square = Square(27);
         assert_eq!(square.rank(), 3);
         assert_eq!(square.file(), 3);
+    }
+
+    #[test]
+    fn test_square_index() {
+        let square = Square::new(4, 5).unwrap();
+        assert_eq!(square.index(), 37);
     }
 
     #[test]
