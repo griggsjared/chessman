@@ -1,5 +1,8 @@
-use std::fmt::{Display, Error, Formatter};
 use crate::types::{Piece, PieceColor, PieceKind, Square};
+use std::{
+    fmt::{Display, Error, Formatter},
+    str::FromStr,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Board {
@@ -83,6 +86,86 @@ impl Display for Board {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseFenError(String);
+
+impl FromStr for Board {
+    type Err = ParseFenError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut board = Board::new();
+
+        let parts: Vec<&str> = s.split_whitespace().collect();
+
+        if parts.len() < 2 {
+            return Err(ParseFenError("Invalid FEN: Not enough parts".to_string()));
+        }
+
+        let ranks: Vec<&str> = parts[0].split('/').collect();
+
+        if ranks.len() != 8 {
+            return Err(ParseFenError(
+                "Invalid FEN: Incorrect number of ranks".to_string(),
+            ));
+        }
+
+        //if any of the ranks expands to more than 8 squares, return error
+        if ranks.iter().any(|rank| {
+            let mut count = 0;
+            for c in rank.chars() {
+                if c.is_digit(10) {
+                    count += c.to_digit(10).unwrap() as usize;
+                } else {
+                    count += 1;
+                }
+            }
+            count != 8
+        }) {
+            return Err(ParseFenError(
+                "Invalid FEN: Rank does not expand to 8 squares".to_string(),
+            ));
+        }
+
+        for (rank_index, rank_str) in ranks.iter().enumerate() {
+            // file index 0 to 7
+            let mut file_index = 0;
+            for c in rank_str.chars() {
+                // if our char is a digit, 1-8 we have that many emoty square incluing and past this
+                // file index
+                if c.is_digit(10) {
+                    let empty_squares = c.to_digit(10).unwrap() as usize;
+                    file_index += empty_squares;
+                } else {
+                    let piece = Piece::from_fen(c).ok_or(ParseFenError(format!(
+                        "Invalid FEN: Unknown piece character '{}'",
+                        c
+                    )))?;
+                    let square = Square::from_rank_and_file(7 - rank_index as u8, file_index as u8)
+                        .ok_or(ParseFenError(
+                            "Invalid FEN: Square out of bounds".to_string(),
+                        ))?;
+                    board.set_piece_at(square, Some(piece));
+                    file_index += 1;
+                }
+            }
+        }
+
+        let side_to_move = match parts[1] {
+            "w" => PieceColor::White,
+            "b" => PieceColor::Black,
+            _ => {
+                return Err(ParseFenError(
+                    "Invalid FEN: Invalid side to move".to_string(),
+                ));
+            }
+        };
+
+        board.side_to_move = side_to_move;
+
+        return Ok(board);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -125,7 +208,10 @@ mod tests {
             board.piece_at(Square::from_rank_and_file(6, 5).unwrap()),
             Some(Piece::new(PieceColor::Black, PieceKind::Pawn))
         );
-        assert_eq!(board.piece_at(Square::from_rank_and_file(4, 4).unwrap()), None);
+        assert_eq!(
+            board.piece_at(Square::from_rank_and_file(4, 4).unwrap()),
+            None
+        );
     }
 
     #[test]
@@ -144,5 +230,44 @@ mod tests {
             "  a b c d e f g h\n",
         );
         assert_eq!(board_str, expected_str);
+    }
+
+    #[test]
+    fn test_board_from_starting_position_fen() {
+        // starting position FEN
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w";
+        let board = Board::from_str(fen).unwrap();
+        assert_eq!(
+            board.piece_at(Square::from_rank_and_file(0, 0).unwrap()),
+            Some(Piece::new(PieceColor::White, PieceKind::Rook))
+        );
+        assert_eq!(
+            board.piece_at(Square::from_rank_and_file(7, 4).unwrap()),
+            Some(Piece::new(PieceColor::Black, PieceKind::King))
+        );
+        assert_eq!(board.side_to_move(), PieceColor::White);
+    }
+
+    #[test]
+    fn test_board_from_custom_fen() {
+        // black king on d5, white king on e2, black to move
+        let fen = "8/8/8/3k4/8/8/4K3/8 b";
+        let board = Board::from_str(fen).unwrap();
+        assert_eq!(
+            board.piece_at(Square::from_rank_and_file(4, 3).unwrap()),
+            Some(Piece::new(PieceColor::Black, PieceKind::King))
+        );
+        assert_eq!(
+            board.piece_at(Square::from_rank_and_file(1, 4).unwrap()),
+            Some(Piece::new(PieceColor::White, PieceKind::King))
+        );
+        assert_eq!(board.side_to_move(), PieceColor::Black);
+    }
+
+    #[test]
+    fn test_board_from_fen_invalid() {
+        let invalid_fen = "invalid_fen_string";
+        let result = Board::from_str(invalid_fen);
+        assert!(result.is_err());
     }
 }

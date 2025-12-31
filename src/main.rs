@@ -1,4 +1,4 @@
-use chessman::{Board};
+use chessman::Board;
 
 fn main() {
     println!("Chessman!");
