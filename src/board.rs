@@ -109,30 +109,40 @@ impl FromStr for Board {
             ));
         }
 
-        //if any of the ranks expands to more than 8 squares, return error
-        if ranks.iter().any(|rank| {
-            let mut count = 0;
+        // Each rank must expand to exactly 8 files.
+        for (rank_index, rank) in ranks.iter().enumerate() {
+            let mut file_count: usize = 0;
+
             for c in rank.chars() {
-                if c.is_digit(10) {
-                    count += c.to_digit(10).unwrap() as usize;
+                if matches!(c, '1'..='8') {
+                    file_count += c.to_digit(10).unwrap() as usize;
                 } else {
-                    count += 1;
+                    file_count += 1;
                 }
             }
-            count != 8
-        }) {
-            return Err(ParseFenError(
-                "Invalid FEN: Rank does not expand to 8 squares".to_string(),
-            ));
+
+            if file_count != 8 {
+                return Err(ParseFenError(format!(
+                    "Invalid FEN: Rank {} does not expand to 8 squares",
+                    8 - rank_index
+                )));
+            }
         }
 
         for (rank_index, rank_str) in ranks.iter().enumerate() {
             // file index 0 to 7
             let mut file_index = 0;
             for c in rank_str.chars() {
-                // if our char is a digit, 1-8 we have that many emoty square incluing and past this
-                // file index
-                if c.is_digit(10) {
+                // If adding the next piece/squares would go past the last file,
+                // bail out with an explicit error.
+                if file_index > 7 {
+                    return Err(ParseFenError(format!(
+                        "Invalid FEN: Too many squares in rank {}",
+                        8 - rank_index
+                    )));
+                }
+
+                if matches!(c, '1'..='8') {
                     let empty_squares = c.to_digit(10).unwrap() as usize;
                     file_index += empty_squares;
                 } else {
@@ -148,9 +158,16 @@ impl FromStr for Board {
                     file_index += 1;
                 }
             }
+
+            if file_index != 8 {
+                return Err(ParseFenError(format!(
+                    "Invalid FEN: Rank {} does not end on file 8",
+                    8 - rank_index
+                )));
+            }
         }
 
-        let side_to_move = match parts[1] {
+        board.side_to_move = match parts[1] {
             "w" => PieceColor::White,
             "b" => PieceColor::Black,
             _ => {
@@ -160,9 +177,7 @@ impl FromStr for Board {
             }
         };
 
-        board.side_to_move = side_to_move;
-
-        return Ok(board);
+        Ok(board)
     }
 }
 
@@ -267,6 +282,34 @@ mod tests {
     #[test]
     fn test_board_from_fen_invalid() {
         let invalid_fen = "invalid_fen_string";
+        let result = Board::from_str(invalid_fen);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_board_from_fen_incorrect_ranks() {
+        let invalid_fen = "8/8/8/8/8/8/8 w"; // only 7 ranks
+        let result = Board::from_str(invalid_fen);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_board_from_fen_invalid_side_to_move() {
+        let invalid_fen = "8/8/8/8/8/8/8/8 x"; // invalid side to move
+        let result = Board::from_str(invalid_fen);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_board_from_fen_invalid_rank_width() {
+        let invalid_fen = "9/8/8/8/8/8/8/8 w"; // rank with 9 squares
+        let result = Board::from_str(invalid_fen);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_board_from_fen_unknown_piece() {
+        let invalid_fen = "8/8/8/8/8/8/8/7X w"; // 'X' is not a valid piece
         let result = Board::from_str(invalid_fen);
         assert!(result.is_err());
     }
