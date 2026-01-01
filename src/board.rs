@@ -1,6 +1,7 @@
 use crate::types::{Piece, PieceColor, PieceKind, Square};
 use std::{
-    fmt::{Display, Error, Formatter},
+    error::Error,
+    fmt::{Display, Error as FmtError, Formatter},
     str::FromStr,
 };
 
@@ -75,7 +76,7 @@ impl Board {
 }
 
 impl Display for Board {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         for rank in (0..8).rev() {
             write!(f, "{} ", rank + 1)?;
             for file in 0..8 {
@@ -92,6 +93,14 @@ impl Display for Board {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseFenError(String);
+
+impl Display for ParseFenError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(f, "ParseFenError: {}", self.0)
+    }
+}
+
+impl Error for ParseFenError {}
 
 impl FromStr for Board {
     type Err = ParseFenError;
