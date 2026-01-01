@@ -68,6 +68,10 @@ impl Board {
 
         board
     }
+
+    pub fn from_fen(fen: &str) -> Result<Self, ParseFenError> {
+        Self::from_str(fen)
+    }
 }
 
 impl Display for Board {
