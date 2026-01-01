@@ -6,16 +6,38 @@ use std::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+struct CasltingRights {
+    white_kingside: bool,
+    white_queenside: bool,
+    black_kingside: bool,
+    black_queenside: bool,
+}
+
+impl Default for CasltingRights {
+    fn default() -> Self {
+        CasltingRights {
+            white_kingside: false,
+            white_queenside: false,
+            black_kingside: false,
+            black_queenside: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Board {
     squares: [Option<Piece>; 64],
     side_to_move: PieceColor,
+    castling_rights: CasltingRights,
 }
 
 impl Board {
+    /// Returns a new, empty chess board with no pieces and white to move.
     pub fn new() -> Board {
         Board {
             squares: [None; 64],
             side_to_move: PieceColor::White,
+            castling_rights: CasltingRights::default(),
         }
     }
 
